@@ -1,0 +1,120 @@
+
+
+select [Doctor],[Actor],[Singer],[Professor]
+ from
+ (
+ select name,occupation from occupations 
+ )as p
+ pivot
+ (
+ max(name) for occupation in ([Doctor],[Actor],[Singer],[Professor])
+ )as pivottable
+
+
+ Select 
+     Min(Case occupation When 'Doctor' Then name End),
+     Min(Case occupation When 'Actor' Then name End) ,
+     Min(Case occupation When 'Singer' Then name End) ,
+     Min(Case occupation When 'Professor' Then name End) 
+   From occupations
+   Group By occupation
+
+works
+__________
+select [Doctor],[Professor],[Singer],[Actor]
+ from
+ (
+ select row_number() over(partition by Occupation order by Name)as first,name,occupation from occupations 
+ ) as p
+ pivot
+ (
+ max(name) for occupation in ([Doctor],[Actor],[Singer],[Professor])
+ )as pivottable
+  
+
+
+
+
+select N,
+    case 
+    when N in (select N from BST where N in (select P from BST except (select N from BST where P is null))) then 'Inner'
+    when N in (select N from BST where P is null) then 'Root'
+    else
+    'Leaf'
+    end 
+from BST order by N
+
+
+
+
+SELECT c.company_code, c.founder, 
+       COUNT(DISTINCT l.lead_manager_code), COUNT(DISTINCT s.senior_manager_code),
+       COUNT(DISTINCT m.manager_code), COUNT(DISTINCT e.employee_code)
+FROM Company c JOIN Lead_Manager l ON c.company_code = l.company_code JOIN
+     Senior_Manager s ON l.lead_manager_code = s.lead_manager_code JOIN
+     Manager m ON s.senior_manager_code = m.senior_manager_code JOIN
+     Employee e ON m.manager_code = e.manager_code   
+GROUP BY c.company_code, c.founder  ORDER BY c.company_code
+
+
+
+select c.company_code,c.founder,lead,senior,manager,employee from Company c join 
+(select company_code,count(distinct lead_manager_code)as lead from Lead_Manager  group by company_code )l
+ on c.company_code=l.company_code join (select company_code,count(distinct senior_manager_code)as 
+senior from Senior_Manager  group by company_code)s on c.company_code =s.company_code join 
+(select company_code,count(distinct manager_code)as manager from Manager  group by company_code) m 
+on c.company_code=m.company_code join (select company_code,count(distinct employee_code)as employee 
+
+from Employee  group by company_code) e on c.company_code=e.company_code group by c.company_code,c.founder,
+lead,senior,manager,employee order by company_code
+
+select h.hacker_id,h.name from Hackers h join (
+select s.hacker_id as hack ,count(s.hacker_id)as cnt from Submissions s 
+ join Challenges c on s.challenge_id = c.challenge_id join Difficulty d on
+ d.difficulty_level=c.difficulty_level where s.score=d.score  group by s.hacker_id having count(s.hacker_id)>1 )t
+on h.hacker_id =t.hack order by t.cnt desc
+
+
+SELECT Start_Date, MIN(End_Date) FROM
+(SELECT Start_Date FROM Projects WHERE Start_Date NOT IN (SELECT End_Date FROM Projects)) AS s,
+(SELECT End_Date FROM Projects WHERE End_Date NOT IN (SELECT Start_Date FROM Projects)) AS e
+WHERE Start_Date < End_Date
+GROUP BY Start_Date
+ORDER BY DATEDIFF(MIN(End_Date), Start_Date), Start_Date;
+
+
+
+SELECT f1.X, f1.Y FROM Functions AS f1 
+WHERE f1.X = f1.Y AND 
+(SELECT COUNT(*) FROM Functions WHERE X = f1.X AND Y = f1.X) > 1
+UNION
+SELECT f1.X, f1.Y FROM Functions AS f1, Functions AS f2
+WHERE f1.X <> f1.Y AND f1.X = f2.Y AND f1.Y = f2.X AND f1.X < f2.X
+ORDER BY X;
+
+select f.X,f.Y from Functions f where (select count(*) from Functions where Y=f.X and X=f.Y)>1 
+union 
+select  f.X,f.Y from Functions f  where f.X = (select Y from Functions where Y=f.X and X=f.Y and X<>f.X and f.X<f.Y) order by f.X
+
+
+
+
+SELECT con.contest_id, con.hacker_id, con.name, 
+SUM(sg.total_submissions), SUM(sg.total_accepted_submissions), 
+SUM(vg.total_views), SUM(vg.total_unique_views)
+FROM Contests AS con
+JOIN Colleges AS col ON con.contest_id = col.contest_id
+JOIN Challenges AS cha ON cha.college_id = col.college_id
+LEFT JOIN
+(SELECT ss.challenge_id, SUM(ss.total_submissions) AS total_submissions, SUM(ss.total_accepted_submissions) AS total_accepted_submissions FROM Submission_Stats AS ss GROUP BY ss.challenge_id) AS sg
+ON cha.challenge_id = sg.challenge_id
+LEFT JOIN
+(SELECT vs.challenge_id, SUM(vs.total_views) AS total_views, SUM(vs.total_unique_views) AS total_unique_views
+FROM View_Stats AS vs GROUP BY vs.challenge_id) AS vg
+ON cha.challenge_id = vg.challenge_id
+GROUP BY con.contest_id, con.hacker_id, con.name
+HAVING SUM(sg.total_submissions) +
+       SUM(sg.total_accepted_submissions) +
+       SUM(vg.total_views) +
+       SUM(vg.total_unique_views) > 0
+ORDER BY con.contest_id;
